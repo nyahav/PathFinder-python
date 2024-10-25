@@ -1,4 +1,5 @@
 import pygame
+import random
 import os
 import math
 from queue import PriorityQueue
@@ -28,50 +29,111 @@ BUTTON_COLOR = (0, 0, 255)
 
 MAZE_PRESETS = {
     "Maze 1": [
-        (0, 1), (0, 2), (0, 3), (1, 3), (2, 3), (2, 4), (3, 4), (3, 5), 
-        (4, 5), (4, 6), (5, 6), (6, 6), (6, 7), (6, 8), (6, 9), (7, 9), 
-        (8, 9), (9, 9), (10, 9), (10, 8), (10, 7), (11, 7), (12, 7), 
-        (12, 6), (13, 6), (14, 6), (15, 6), (16, 6), (16, 7), (16, 8), 
-        (16, 9), (16, 10), (15, 10), (15, 11), (15, 12), (14, 12), 
-        (14, 13), (14, 14), (14, 15), (13, 15), (12, 15), (12, 14), 
-        (12, 13), (11, 13), (11, 12), (11, 11), (10, 11), (9, 11), 
-        (9, 10), (9, 12), (8, 12), (7, 12), (6, 12), (6, 13), (5, 13), 
-        (5, 14), (5, 15), (4, 15), (4, 16), (4, 17), (3, 17), (3, 18), 
-        (3, 19), (4, 19), (5, 19), (5, 20), (5, 21), (6, 21), (6, 22), 
-        (7, 22), (8, 22), (8, 23), (8, 24), (9, 24), (10, 24), (11, 24), 
-        (12, 24), (12, 25), (12, 26), (11, 26), (10, 26), (9, 26), 
-        (9, 27), (9, 28), (8, 28), (7, 28), (6, 28), (5, 28), (4, 28), 
-        (3, 28), (2, 28), (1, 28), (0, 28), (0, 29), (0, 30), (0, 31), 
-        (1, 31), (2, 31), (2, 32), (3, 32), (4, 32), (5, 32), (6, 32), 
-        (7, 32), (8, 32), (9, 32), (10, 32), (11, 32), (12, 32), (13, 32), 
-        (14, 32), (15, 32), (16, 32), (17, 32), (18, 32), (19, 32), 
-        (20, 32), (21, 32), (22, 32), (23, 32), (24, 32), (25, 32), 
-        (26, 32), (27, 32), (28, 32), (29, 32), (30, 32), (31, 32), 
-        (32, 32), (33, 32), (34, 32), (35, 32), (36, 32), (37, 32), 
-        (38, 32), (39, 32), (40, 32), (41, 32), (42, 32), (43, 32), 
-        (44, 32), (45, 32), (46, 32), (47, 32), (48, 32), (49, 32), 
-        (49, 33), (49, 34), (49, 35), (49, 36), (49, 37), (49, 38), 
-        (49, 39), (49, 40), (49, 41), (49, 42), (49, 43), (49, 44), 
-        (49, 45), (49, 46), (49, 47), (49, 48), (49, 49)
-    ],
+    # Spiral pattern in top left
+    (5, 5), (6, 5), (7, 5), (8, 5), (8, 6), (8, 7), (8, 8),
+    (7, 8), (6, 8), (5, 8), (5, 7), (5, 6),
+    
+    # Diagonal barriers
+    (10, 2), (11, 3), (12, 4), (13, 5), (14, 6), (15, 7),
+    (16, 8), (17, 9), (18, 10), (19, 11), (20, 12),
+    
+    (30, 2), (31, 3), (32, 4), (33, 5), (34, 6), (35, 7),
+    (36, 8), (37, 9), (38, 10), (39, 11), (40, 12),
+    
+    # Cross pattern in center
+    (23, 20), (24, 20), (25, 20), (26, 20), (27, 20),
+    (25, 18), (25, 19), (25, 21), (25, 22),
+    
+    # Zigzag pattern
+    (2, 30), (3, 30), (4, 30), (4, 31), (4, 32), (5, 32),
+    (6, 32), (6, 33), (6, 34), (7, 34), (8, 34), (8, 35),
+    (8, 36), (9, 36), (10, 36),
+    
+    # Diamond shape
+    (40, 40), (41, 39), (42, 38), (43, 37), (44, 36),
+    (43, 35), (42, 34), (41, 33), (40, 32), (39, 33),
+    (38, 34), (37, 35), (36, 36), (37, 37), (38, 38),
+    (39, 39),
+    
+    # Random scattered walls
+    (15, 15), (15, 16), (16, 15),
+    (35, 25), (36, 25), (37, 25),
+    (20, 45), (21, 45), (22, 45),
+    (45, 15), (45, 16), (45, 17),
+    
+    # L-shaped barriers
+    (10, 20), (10, 21), (10, 22), (11, 22), (12, 22),
+    (30, 40), (31, 40), (32, 40), (32, 41), (32, 42),
+    
+    # Small box patterns
+    (5, 45), (5, 46), (6, 45), (6, 46),
+    (45, 5), (45, 6), (46, 5), (46, 6),
+    
+    # Additional diagonal lines
+    (2, 2), (3, 3), (4, 4),
+    (47, 47), (48, 48),
+    (2, 48), (3, 47), (4, 46),
+    
+    # Random obstacles
+    (15, 35), (25, 30), (35, 15),
+    (12, 12), (38, 42), (42, 38),
+    (8, 25), (25, 8), (40, 25),
+    
+    # Star-like pattern in center-right
+    (30, 30), (31, 29), (32, 28), (31, 31), (32, 32),
+    (29, 31), (28, 32), (29, 29), (28, 28)
+],
     "Maze 2": [
-        (0, 1), (0, 2), (0, 3), (1, 3), (1, 4), (1, 5), (2, 5), (3, 5), 
-        (3, 6), (4, 6), (5, 6), (5, 7), (5, 8), (6, 8), (7, 8), (8, 8), 
-        (9, 8), (10, 8), (11, 8), (11, 9), (11, 10), (11, 11), (12, 11), 
-        (13, 11), (13, 12), (14, 12), (14, 13), (15, 13), (15, 14), 
-        (15, 15), (16, 15), (16, 16), (16, 17), (16, 18), (17, 18), 
-        (18, 18), (18, 19), (19, 19), (20, 19), (20, 20), (21, 20), 
-        (21, 21), (21, 22), (22, 22), (23, 22), (24, 22), (25, 22), 
-        (26, 22), (27, 22), (28, 22), (28, 23), (28, 24), (28, 25), 
-        (28, 26), (29, 26), (30, 26), (31, 26), (32, 26), (33, 26), 
-        (34, 26), (35, 26), (35, 27), (35, 28), (35, 29), (36, 29), 
-        (37, 29), (38, 29), (39, 29), (40, 29), (40, 30), (41, 30), 
-        (42, 30), (42, 31), (42, 32), (43, 32), (43, 33), (43, 34), 
-        (44, 34), (44, 35), (44, 36), (44, 37), (44, 38), (44, 39), 
-        (44, 40), (44, 41), (44, 42), (44, 43), (44, 44), (44, 45), 
-        (44, 46), (44, 47), (44, 48), (44, 49), (45, 49), (46, 49), 
-        (47, 49), (48, 49), (49, 49)
-    ],
+    (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 15), (1, 16), (1, 17),
+    (2, 7), (2, 17), (2, 25), (2, 26), (2, 27), (2, 35), (2, 36),
+    (3, 7), (3, 17), (3, 27), (3, 36), (3, 42), (3, 43), (3, 44),
+    (4, 7), (4, 17), (4, 27), (4, 36), (4, 44),
+    (5, 7), (5, 17), (5, 27), (5, 36), (5, 44),
+    (6, 7), (6, 17), (6, 27), (6, 36), (6, 44),
+    (7, 7), (7, 8), (7, 9), (7, 17), (7, 27), (7, 36), (7, 44),
+    (8, 9), (8, 17), (8, 27), (8, 36), (8, 44),
+    (9, 9), (9, 17), (9, 27), (9, 36), (9, 44),
+    (10, 9), (10, 17), (10, 27), (10, 36), (10, 44),
+    (11, 9), (11, 17), (11, 27), (11, 36), (11, 44),
+    (12, 9), (12, 17), (12, 27), (12, 36), (12, 44),
+    (13, 9), (13, 17), (13, 27), (13, 36), (13, 44),
+    (14, 9), (14, 17), (14, 27), (14, 36), (14, 44),
+    (15, 9), (15, 17), (15, 27), (15, 36), (15, 44),
+    (16, 9), (16, 17), (16, 27), (16, 36), (16, 44),
+    (17, 9), (17, 17), (17, 27), (17, 36), (17, 44),
+    (18, 9), (18, 17), (18, 27), (18, 36), (18, 44),
+    (19, 9), (19, 17), (19, 27), (19, 36), (19, 44),
+    (20, 9), (20, 17), (20, 27), (20, 36), (20, 44),
+    (21, 9), (21, 17), (21, 27), (21, 36), (21, 44),
+    (22, 9), (22, 17), (22, 27), (22, 36), (22, 44),
+    (23, 9), (23, 17), (23, 27), (23, 36), (23, 44),
+    (24, 9), (24, 17), (24, 27), (24, 36), (24, 44),
+    (25, 9), (25, 10), (25, 11), (25, 12), (25, 17), (25, 27), (25, 36), (25, 44),
+    (26, 12), (26, 17), (26, 27), (26, 36), (26, 44),
+    (27, 12), (27, 17), (27, 27), (27, 36), (27, 44),
+    (28, 12), (28, 17), (28, 27), (28, 36), (28, 44),
+    (29, 12), (29, 17), (29, 27), (29, 36), (29, 44),
+    (30, 12), (30, 17), (30, 27), (30, 36), (30, 44),
+    (31, 12), (31, 17), (31, 27), (31, 36), (31, 44),
+    (32, 12), (32, 17), (32, 27), (32, 36), (32, 44),
+    (33, 12), (33, 17), (33, 27), (33, 36), (33, 44),
+    (34, 12), (34, 17), (34, 27), (34, 36), (34, 44),
+    (35, 12), (35, 13), (35, 14), (35, 15), (35, 16), (35, 17), (35, 27), (35, 36), (35, 44),
+    (36, 17), (36, 27), (36, 36), (36, 44),
+    (37, 17), (37, 27), (37, 36), (37, 44),
+    (38, 17), (38, 27), (38, 36), (38, 44),
+    (39, 17), (39, 27), (39, 36), (39, 44),
+    (40, 17), (40, 27), (40, 36), (40, 44),
+    (41, 17), (41, 27), (41, 36), (41, 44),
+    (42, 17), (42, 27), (42, 36), (42, 44),
+    (43, 17), (43, 27), (43, 36), (43, 44),
+    (44, 17), (44, 18), (44, 19), (44, 20), (44, 27), (44, 36), (44, 44),
+    (45, 20), (45, 27), (45, 36), (45, 44),
+    (46, 20), (46, 27), (46, 36), (46, 44),
+    (47, 20), (47, 27), (47, 36), (47, 44),
+    (48, 20), (48, 27), (48, 36), (48, 44),
+    (49, 20), (49, 21), (49, 22), (49, 23), (49, 24), (49, 25), (49, 26), (49, 27)
+],
 }
 
 class Spot:
@@ -384,50 +446,62 @@ def draw_grid(win, rows, width):
 			pygame.draw.line(win, GREY, (j * gap, 0), (j * gap, width))
    
 def generate_maze(width, height):
-    maze = []
-    for i in range(width):
-        maze.append([0] * height)
-
+    print("generate_maze")
+    # Initialize maze with all walls (1s)
+    maze = [[1] * height for _ in range(width)]
+    
+    def is_near_end(x, y):
+        end_x, end_y = width-1, height-1
+        # Define how many cells around the end to keep clear (e.g., 2 cells)
+        clear_distance = 2
+        return (abs(x - end_x) <= clear_distance and 
+                abs(y - end_y) <= clear_distance)
+        
     def backtrack(x, y):
-        maze[x][y] = 1
-        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        maze[x][y] = 0  # Mark current cell as path (0)
+        directions = [(2, 0), (-2, 0), (0, 2), (0, -2)]  
         random.shuffle(directions)
-
+        
         for dx, dy in directions:
             nx, ny = x + dx, y + dy
-            if 0 <= nx < width and 0 <= ny < height and maze[nx][ny] == 0:
+            if 0 <= nx < width and 0 <= ny < height and maze[nx][ny] == 1:
+                maze[x + dx//2][y + dy//2] = 0
                 backtrack(nx, ny)
-                maze[x + dx // 2][y + dy // 2] = 1
-
+    
+    
     backtrack(0, 0)
+    
+    maze[0][0] = 0
+    maze[width-1][height-1] = 0
+    
     return maze
 
-def maze_to_string(maze):
-    maze_str = "Maze 2: [\n"
+def maze_to_coordinates(maze):
+    print("maze_to_coordinates")
+    coordinates = []
     for i in range(len(maze)):
         for j in range(len(maze[0])):
-            if maze[i][j] == 1:
-                maze_str += f"    ({i}, {j}),\n"
-    maze_str += "]"
-    return maze_str
+            if maze[i][j] == 1:  # 1 represents barriers/walls
+                coordinates.append((i, j))
+    return coordinates
+
 def load_maze(grid, maze_name):
     # Clear existing barriers before loading new maze
     for row in grid:
         for spot in row:
             if not spot.is_start() and not spot.is_end():
                 spot.reset()
-
+    
     if maze_name == "random":
         # Generate a random maze using the generate_maze function
         maze = generate_maze(50, 50)
-        maze_string = maze_to_string(maze)
-        _console.log(maze_string)
-
-        # Load the generated maze into the grid
-        for (row, col) in maze_string:
-            grid[row][col].make_barrier()
-
-    # Load the selected maze preset if it's not "random"
+        maze_coordinates = maze_to_coordinates(maze)
+        print(f"Number of barriers: {len(maze_coordinates)}")  
+      
+        for (row, col) in maze_coordinates:
+            if not (row == 0 and col == 0) and not (row == 49 and col == 49):  # Protect start/end
+                grid[row][col].make_barrier()
+    
     elif maze_name in MAZE_PRESETS:
         for (row, col) in MAZE_PRESETS[maze_name]:
             grid[row][col].make_barrier()
@@ -518,29 +592,42 @@ def main(win, width):
     start = None
     end = None
     run = True
-    
+   
     maze_options = ["Clear","random", "Maze 1", "Maze 2"]
     maze_dropdown = Dropdown(600, width + 30, 150, maze_options)
-    
-    options = ["A*", "Dijkstra", "BFS", "DFS"]
+   
+    options = ["A*", "Dijkstra", "BFS", "DFS"]#maybe add swarm algorithm
     dropdown = Dropdown(20, width + 30, 150, options)
     algorithms = {"A*": algorithmAstart, "Dijkstra": algorithmDijkstra, "BFS": algorithmBFS, "DFS": algorithmDFS}
-    
+   
     while run:
         win.fill(WHITE)
         draw(win, grid, ROWS, width)
-        
+       
         # Draw each dropdown only once per loop
         dropdown.draw(win)
         maze_dropdown.draw(win)
-        
+       
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-
             dropdown.handle_event(event)
+            
+            # Handle maze dropdown events
+            previous_selection = maze_dropdown.selected
             maze_dropdown.handle_event(event)
-
+            # Check if selection changed
+            if maze_dropdown.selected != previous_selection:
+                if maze_dropdown.selected == "random":
+                    load_maze(grid, "random")
+                    draw(win, grid, ROWS, width)
+                elif maze_dropdown.selected in MAZE_PRESETS:
+                    load_maze(grid, maze_dropdown.selected)
+                    draw(win, grid, ROWS, width)
+                elif maze_dropdown.selected == "Clear":
+                    start, end = None, None
+                    grid = make_grid(ROWS, width)
+            
             if pygame.mouse.get_pressed()[0]:  # LEFT mouse button
                 pos = pygame.mouse.get_pos()
                 if is_button_clicked(pos, width // 2 - 120, width + 20, 100, 50):
@@ -552,7 +639,6 @@ def main(win, width):
                             spot.update_neighbors(grid)
                     selected_algorithm = algorithms[dropdown.selected]
                     selected_algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
-
                 try:
                     row, col = get_clicked_pos(pos, ROWS, width)
                     spot = grid[row][col]
@@ -566,17 +652,18 @@ def main(win, width):
                         spot.make_barrier()
                 except IndexError:
                     pass
-
             elif pygame.mouse.get_pressed()[2]:  # RIGHT mouse button
                 pos = pygame.mouse.get_pos()
-                row, col = get_clicked_pos(pos, ROWS, width)
-                spot = grid[row][col]
-                spot.reset()
-                if spot == start:
-                    start = None
-                elif spot == end:
-                    end = None
-
+                try:
+                    row, col = get_clicked_pos(pos, ROWS, width)
+                    spot = grid[row][col]
+                    spot.reset()
+                    if spot == start:
+                        start = None
+                    elif spot == end:
+                        end = None
+                except IndexError:
+                    pass
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and start and end:
                     for row in grid:
@@ -584,15 +671,12 @@ def main(win, width):
                             spot.update_neighbors(grid)
                     selected_algorithm = algorithms[dropdown.selected]
                     selected_algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
-
                 if event.key == pygame.K_c:
                     start, end = None, None
                     grid = make_grid(ROWS, width)
-            if maze_dropdown.selected in MAZE_PRESETS:
-                load_maze(grid, maze_dropdown.selected)
-                draw(win, grid, ROWS, width)    
-        pygame.display.update()  # Update the display only once per loop
-
+                    
+        pygame.display.update()  
+        
     pygame.quit()
-
+    
 main(WIN, WIDTH)
