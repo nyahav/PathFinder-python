@@ -2,6 +2,7 @@ import pygame
 import os
 import math
 from queue import PriorityQueue
+from collections import deque
 
 os.environ['SDL_VIDEO_WINDOW_POS'] = '100,100'
 pygame.init()
@@ -101,8 +102,128 @@ def reconstruct_path(came_from,current,draw):
         current.make_path()
         draw()
     
+def algorithmBFS(draw, grid, start, end):
+    queue = deque([start])
+    came_from = {}
     
-def algorithm(draw,grid,start,end):
+    
+    visited = {spot: False for row in grid for spot in row}
+    visited[start] = True
+
+    while queue:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+
+        current = queue.popleft()  
+
+        
+        if current == end:
+            reconstruct_path(came_from, end, draw)
+            start.make_start()
+            end.make_end()
+            return True
+
+        for neighbor in current.neighbors:
+            if not visited[neighbor] and not neighbor.is_barrier():
+                came_from[neighbor] = current
+                visited[neighbor] = True
+                queue.append(neighbor)  
+                if neighbor != start:
+                 neighbor.make_open()
+
+        draw()
+
+        if current != start:
+            current.make_closed()
+
+    return None  
+
+
+def algorithmDFS(draw, grid, start, end):
+    
+    stack = [start]
+    came_from = {}
+    
+    
+    visited = {spot: False for row in grid for spot in row}
+    visited[start] = True
+
+    while stack:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+
+        current = stack.pop()  
+
+       
+        if current == end:
+            reconstruct_path(came_from, end, draw)
+            start.make_start()
+            end.make_end()
+            return True
+
+        for neighbor in current.neighbors:
+            if not visited[neighbor] and not neighbor.is_barrier():
+                came_from[neighbor] = current
+                visited[neighbor] = True
+                stack.append(neighbor) 
+                if neighbor != start:
+                 neighbor.make_open()
+
+        draw()
+
+        if current != start:
+            current.make_closed()
+
+    return None
+
+def algorithmDijkstra(draw, grid, start, end):
+    count = 0
+    open_set = PriorityQueue()  
+    open_set.put((0, count, start))  
+    came_from = {}  
+    
+    g_score = {spot: float("inf") for row in grid for spot in row}  
+    g_score[start] = 0  
+    
+    open_set_hash = {start}  
+
+    while not open_set.empty():
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+        
+        current = open_set.get()[2]  
+        open_set_hash.remove(current)
+
+        if current == end:  
+            reconstruct_path(came_from, end, draw)
+            start.make_start()
+            end.make_end()
+            return True
+
+        for neighbor in current.neighbors: 
+            temp_g_score = g_score[current] + 1  
+
+            if temp_g_score < g_score[neighbor]:  
+                came_from[neighbor] = current  
+                g_score[neighbor] = temp_g_score  
+                
+                if neighbor not in open_set_hash:  
+                    count += 1
+                    open_set.put((g_score[neighbor], count, neighbor))
+                    open_set_hash.add(neighbor)
+                    neighbor.make_open()  
+        
+        draw()  
+        
+        if current != start:
+            current.make_closed()  
+
+    return False  
+
+def algorithmAstart(draw,grid,start,end):
     count = 0
     open_set= PriorityQueue()
     open_set.put((0,count,start))
@@ -126,6 +247,7 @@ def algorithm(draw,grid,start,end):
         
         if current == end:
             reconstruct_path(came_from,end,draw)
+            start.make_start()
             end.make_end()
             return True
         
@@ -140,7 +262,8 @@ def algorithm(draw,grid,start,end):
                     count +=1
                     open_set.put((f_score[neighbor],count,neighbor))
                     open_set_hash.add(neighbor)
-                    neighbor.make_open()
+                    if neighbor != start:
+                     neighbor.make_open()
         
         draw()
         
@@ -155,6 +278,45 @@ def h(p1, p2):
 	return abs(x1 - x2) + abs(y1 - y2)
 
 def make_grid(rows, width):
+    grid = []
+    gap = width // rows
+    
+    # Add top border (row of black spots)
+    top_border = [Spot(0, j, gap, rows + 2) for j in range(rows + 2)]
+    for spot in top_border:
+        spot.make_barrier()  # Make these spots black
+    grid.append(top_border)
+    
+    # Create the grid, wrapped with black barrier spots on left and right
+    for i in range(1, rows + 1):  # Shift all rows by 1
+        row = []
+        
+        # Left border spot
+        left_border_spot = Spot(i, 0, gap, rows + 2)
+        left_border_spot.make_barrier()
+        row.append(left_border_spot)
+
+        # Add the actual spots from the grid
+        for j in range(1, rows + 1):
+            spot = Spot(i, j, gap, rows + 2)
+            row.append(spot)
+        
+        # Right border spot
+        right_border_spot = Spot(i, rows + 1, gap, rows + 2)
+        right_border_spot.make_barrier()
+        row.append(right_border_spot)
+        
+        grid.append(row)
+    
+    # Add bottom border (row of black spots)
+    bottom_border = [Spot(rows + 1, j, gap, rows + 2) for j in range(rows + 2)]
+    for spot in bottom_border:
+        spot.make_barrier()
+    grid.append(bottom_border)
+
+    return grid
+'''
+def make_grid(rows, width):
 	grid = []
 	gap = width // rows
 	for i in range(rows):
@@ -164,7 +326,7 @@ def make_grid(rows, width):
 			grid[i].append(spot)
 
 	return grid
-
+'''
 
 def draw_grid(win, rows, width):
 	gap = width // rows
@@ -202,21 +364,58 @@ def draw(win, grid, rows, width):
 
     pygame.display.update()
 
-# Check if the restart button is clicked
+
 def is_button_clicked(pos, button_x, button_y, button_width, button_height):
     x, y = pos
     return button_x <= x <= button_x + button_width and button_y <= y <= button_y + button_height
 
 def get_clicked_pos(pos, rows, width):
-	gap = width // rows
-	y, x = pos
+    gap = width // rows
+    y, x = pos
 
-	row = y // gap
-	col = x // gap
+    row = y // gap
+    col = x // gap
 
-	return row, col
+    
+    if row >= rows or col >= rows or row < 0 or col < 0:
+        raise IndexError("Clicked position out of grid bounds")  
 
+    return row, col
 
+class Dropdown:
+    def __init__(self, x, y, width, options):
+        self.rect = pygame.Rect(x, y, width, 40)  
+        self.options = options
+        self.selected = options[0]  
+        self.dropdown_open = False  
+        self.font = pygame.font.Font(None, 30)
+
+    def draw(self, win):
+        
+        pygame.draw.rect(win, BLUE, self.rect)
+        text = self.font.render(self.selected, True, WHITE)
+        win.blit(text, (self.rect.x + 10, self.rect.y + 10))
+        
+        
+        if self.dropdown_open:
+            for i, option in enumerate(self.options):
+                option_rect = pygame.Rect(self.rect.x, self.rect.y + 40 * (i + 1), self.rect.width, 40)
+                pygame.draw.rect(win, BLUE, option_rect)
+                option_text = self.font.render(option, True, WHITE)
+                win.blit(option_text, (option_rect.x + 10, option_rect.y + 10))
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(event.pos):
+                self.dropdown_open = not self.dropdown_open  
+
+            
+            if self.dropdown_open:
+                for i, option in enumerate(self.options):
+                    option_rect = pygame.Rect(self.rect.x, self.rect.y + 40 * (i + 1), self.rect.width, 40)
+                    if option_rect.collidepoint(event.pos):
+                        self.selected = option  
+                        self.dropdown_open = False  
 
 def main(win, width):
     ROWS = 50
@@ -225,14 +424,24 @@ def main(win, width):
     start = None
     end = None
     run = True
+    
+    
+    options = ["A*","Dijkstra", "BFS", "DFS" ]
+    dropdown = Dropdown(10, width + 10, 150, options)
 
+    algorithms = {
+        "A*": algorithmAstart,
+        "Dijkstra":algorithmDijkstra,
+        "BFS": algorithmBFS,
+        "DFS": algorithmDFS
+    }
     while run:
-        draw(win, grid, ROWS, width)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+            dropdown.handle_event(event)  
 
-            if pygame.mouse.get_pressed()[0]:  # LEFT mouse click
+            if pygame.mouse.get_pressed()[0]:  
                 pos = pygame.mouse.get_pos()
                 button_width, button_height = 100, 50
                 button_x_restart = width // 2 - 120
@@ -240,33 +449,35 @@ def main(win, width):
                 button_y = width + 20
 
                 if is_button_clicked(pos, button_x_restart, button_y, button_width, button_height):
-                    # Restart button clicked
                     start = None
                     end = None
                     grid = make_grid(ROWS, width)
                 
                 elif is_button_clicked(pos, button_x_start, button_y, button_width, button_height):
-                    # Start button clicked (same as pressing SPACE)
                     if start and end:
                         for row in grid:
                             for spot in row:
                                 spot.update_neighbors(grid)
-                        algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
+                        selected_algorithm = algorithms[dropdown.selected]
+                        selected_algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
 
                 else:
-                    # Grid interaction (setting start, end, or barrier)
-                    row, col = get_clicked_pos(pos, ROWS, width)
-                    spot = grid[row][col]
-                    if not start and spot != end:
-                        start = spot
-                        start.make_start()
-                    elif not end and spot != start:
-                        end = spot
-                        end.make_end()
-                    elif spot != end and spot != start:
-                        spot.make_barrier()
+                    try:
+                        row, col = get_clicked_pos(pos, ROWS, width)  # Get the clicked position
+                        spot = grid[row][col]  # Access the spot in the grid
+                        
+                        if not start and spot != end:
+                            start = spot
+                            start.make_start()
+                        elif not end and spot != start:
+                            end = spot
+                            end.make_end()
+                        elif spot != end and spot != start:
+                            spot.make_barrier()
+                    except IndexError:
+                        pass
 
-            elif pygame.mouse.get_pressed()[2]:  # RIGHT mouse click (to reset spot)
+            elif pygame.mouse.get_pressed()[2]:  # RIGHT mouse click 
                 pos = pygame.mouse.get_pos()
                 row, col = get_clicked_pos(pos, ROWS, width)
                 spot = grid[row][col]
@@ -281,12 +492,20 @@ def main(win, width):
                     for row in grid:
                         for spot in row:
                             spot.update_neighbors(grid)
-                    algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
+                    selected_algorithm = algorithms[dropdown.selected]
+                    selected_algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
 
                 if event.key == pygame.K_c:
                     start = None
                     end = None
                     grid = make_grid(ROWS, width)
+        
+        
+        win.fill(WHITE)  
+        draw(win, grid, ROWS, width)  
+        dropdown.draw(win)  
+
+        pygame.display.update() 
 
     pygame.quit()
 
