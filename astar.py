@@ -4,13 +4,15 @@ import math
 from queue import PriorityQueue
 from collections import deque
 
+from rich import _console
+
 os.environ['SDL_VIDEO_WINDOW_POS'] = '100,100'
 pygame.init()
 pygame.font.init() 
 
 WIDTH = 800
 WIN = pygame.display.set_mode((WIDTH, WIDTH + 100), pygame.RESIZABLE)  # Increased height to fit the button
-pygame.display.set_caption("A* Path Finding Algorithm")
+pygame.display.set_caption("Path Finding Visualizer")
 
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
@@ -23,6 +25,54 @@ ORANGE = (255, 165 ,0)
 GREY = (128, 128, 128)
 TURQUOISE = (64, 224, 208)
 BUTTON_COLOR = (0, 0, 255)
+
+MAZE_PRESETS = {
+    "Maze 1": [
+        (0, 1), (0, 2), (0, 3), (1, 3), (2, 3), (2, 4), (3, 4), (3, 5), 
+        (4, 5), (4, 6), (5, 6), (6, 6), (6, 7), (6, 8), (6, 9), (7, 9), 
+        (8, 9), (9, 9), (10, 9), (10, 8), (10, 7), (11, 7), (12, 7), 
+        (12, 6), (13, 6), (14, 6), (15, 6), (16, 6), (16, 7), (16, 8), 
+        (16, 9), (16, 10), (15, 10), (15, 11), (15, 12), (14, 12), 
+        (14, 13), (14, 14), (14, 15), (13, 15), (12, 15), (12, 14), 
+        (12, 13), (11, 13), (11, 12), (11, 11), (10, 11), (9, 11), 
+        (9, 10), (9, 12), (8, 12), (7, 12), (6, 12), (6, 13), (5, 13), 
+        (5, 14), (5, 15), (4, 15), (4, 16), (4, 17), (3, 17), (3, 18), 
+        (3, 19), (4, 19), (5, 19), (5, 20), (5, 21), (6, 21), (6, 22), 
+        (7, 22), (8, 22), (8, 23), (8, 24), (9, 24), (10, 24), (11, 24), 
+        (12, 24), (12, 25), (12, 26), (11, 26), (10, 26), (9, 26), 
+        (9, 27), (9, 28), (8, 28), (7, 28), (6, 28), (5, 28), (4, 28), 
+        (3, 28), (2, 28), (1, 28), (0, 28), (0, 29), (0, 30), (0, 31), 
+        (1, 31), (2, 31), (2, 32), (3, 32), (4, 32), (5, 32), (6, 32), 
+        (7, 32), (8, 32), (9, 32), (10, 32), (11, 32), (12, 32), (13, 32), 
+        (14, 32), (15, 32), (16, 32), (17, 32), (18, 32), (19, 32), 
+        (20, 32), (21, 32), (22, 32), (23, 32), (24, 32), (25, 32), 
+        (26, 32), (27, 32), (28, 32), (29, 32), (30, 32), (31, 32), 
+        (32, 32), (33, 32), (34, 32), (35, 32), (36, 32), (37, 32), 
+        (38, 32), (39, 32), (40, 32), (41, 32), (42, 32), (43, 32), 
+        (44, 32), (45, 32), (46, 32), (47, 32), (48, 32), (49, 32), 
+        (49, 33), (49, 34), (49, 35), (49, 36), (49, 37), (49, 38), 
+        (49, 39), (49, 40), (49, 41), (49, 42), (49, 43), (49, 44), 
+        (49, 45), (49, 46), (49, 47), (49, 48), (49, 49)
+    ],
+    "Maze 2": [
+        (0, 1), (0, 2), (0, 3), (1, 3), (1, 4), (1, 5), (2, 5), (3, 5), 
+        (3, 6), (4, 6), (5, 6), (5, 7), (5, 8), (6, 8), (7, 8), (8, 8), 
+        (9, 8), (10, 8), (11, 8), (11, 9), (11, 10), (11, 11), (12, 11), 
+        (13, 11), (13, 12), (14, 12), (14, 13), (15, 13), (15, 14), 
+        (15, 15), (16, 15), (16, 16), (16, 17), (16, 18), (17, 18), 
+        (18, 18), (18, 19), (19, 19), (20, 19), (20, 20), (21, 20), 
+        (21, 21), (21, 22), (22, 22), (23, 22), (24, 22), (25, 22), 
+        (26, 22), (27, 22), (28, 22), (28, 23), (28, 24), (28, 25), 
+        (28, 26), (29, 26), (30, 26), (31, 26), (32, 26), (33, 26), 
+        (34, 26), (35, 26), (35, 27), (35, 28), (35, 29), (36, 29), 
+        (37, 29), (38, 29), (39, 29), (40, 29), (40, 30), (41, 30), 
+        (42, 30), (42, 31), (42, 32), (43, 32), (43, 33), (43, 34), 
+        (44, 34), (44, 35), (44, 36), (44, 37), (44, 38), (44, 39), 
+        (44, 40), (44, 41), (44, 42), (44, 43), (44, 44), (44, 45), 
+        (44, 46), (44, 47), (44, 48), (44, 49), (45, 49), (46, 49), 
+        (47, 49), (48, 49), (49, 49)
+    ],
+}
 
 class Spot:
 	def __init__(self, row, col, width, total_rows):
@@ -138,7 +188,6 @@ def algorithmBFS(draw, grid, start, end):
             current.make_closed()
 
     return None  
-
 
 def algorithmDFS(draw, grid, start, end):
     
@@ -271,7 +320,6 @@ def algorithmAstart(draw,grid,start,end):
             current.make_closed()
     return None   
     
-    
 def h(p1, p2):
 	x1, y1 = p1
 	x2, y2 = p2
@@ -334,8 +382,56 @@ def draw_grid(win, rows, width):
 		pygame.draw.line(win, GREY, (0, i * gap), (width, i * gap))
 		for j in range(rows):
 			pygame.draw.line(win, GREY, (j * gap, 0), (j * gap, width))
+   
+def generate_maze(width, height):
+    maze = []
+    for i in range(width):
+        maze.append([0] * height)
 
+    def backtrack(x, y):
+        maze[x][y] = 1
+        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        random.shuffle(directions)
 
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < width and 0 <= ny < height and maze[nx][ny] == 0:
+                backtrack(nx, ny)
+                maze[x + dx // 2][y + dy // 2] = 1
+
+    backtrack(0, 0)
+    return maze
+
+def maze_to_string(maze):
+    maze_str = "Maze 2: [\n"
+    for i in range(len(maze)):
+        for j in range(len(maze[0])):
+            if maze[i][j] == 1:
+                maze_str += f"    ({i}, {j}),\n"
+    maze_str += "]"
+    return maze_str
+def load_maze(grid, maze_name):
+    # Clear existing barriers before loading new maze
+    for row in grid:
+        for spot in row:
+            if not spot.is_start() and not spot.is_end():
+                spot.reset()
+
+    if maze_name == "random":
+        # Generate a random maze using the generate_maze function
+        maze = generate_maze(50, 50)
+        maze_string = maze_to_string(maze)
+        _console.log(maze_string)
+
+        # Load the generated maze into the grid
+        for (row, col) in maze_string:
+            grid[row][col].make_barrier()
+
+    # Load the selected maze preset if it's not "random"
+    elif maze_name in MAZE_PRESETS:
+        for (row, col) in MAZE_PRESETS[maze_name]:
+            grid[row][col].make_barrier()
+            
 def draw_button(win, x, y, w, h, text, color):
     border_radius = 10
     pygame.draw.rect(win, BLACK, (x - 5, y - 5, w + 10, h + 10), border_radius=border_radius) 
@@ -384,14 +480,13 @@ def get_clicked_pos(pos, rows, width):
 
 class Dropdown:
     def __init__(self, x, y, width, options):
-        self.rect = pygame.Rect(x, y, width, 40)  
+        self.rect = pygame.Rect(x, y, width, 40)
         self.options = options
-        self.selected = options[0]  
-        self.dropdown_open = False  
+        self.selected = options[0]
+        self.dropdown_open = False
         self.font = pygame.font.Font(None, 30)
 
     def draw(self, win):
-        
         pygame.draw.rect(win, BLUE, self.rect)
         text = self.font.render(self.selected, True, WHITE)
         win.blit(text, (self.rect.x + 10, self.rect.y + 10))
@@ -409,75 +504,70 @@ class Dropdown:
             if self.rect.collidepoint(event.pos):
                 self.dropdown_open = not self.dropdown_open  
 
-            
-            if self.dropdown_open:
+            elif self.dropdown_open:
                 for i, option in enumerate(self.options):
                     option_rect = pygame.Rect(self.rect.x, self.rect.y + 40 * (i + 1), self.rect.width, 40)
                     if option_rect.collidepoint(event.pos):
-                        self.selected = option  
+                        self.selected = option
                         self.dropdown_open = False  
+                        break 
 
 def main(win, width):
     ROWS = 50
     grid = make_grid(ROWS, width)
-
     start = None
     end = None
     run = True
     
+    maze_options = ["Clear","random", "Maze 1", "Maze 2"]
+    maze_dropdown = Dropdown(600, width + 30, 150, maze_options)
     
-    options = ["A*","Dijkstra", "BFS", "DFS" ]
-    dropdown = Dropdown(10, width + 10, 150, options)
-
-    algorithms = {
-        "A*": algorithmAstart,
-        "Dijkstra":algorithmDijkstra,
-        "BFS": algorithmBFS,
-        "DFS": algorithmDFS
-    }
+    options = ["A*", "Dijkstra", "BFS", "DFS"]
+    dropdown = Dropdown(20, width + 30, 150, options)
+    algorithms = {"A*": algorithmAstart, "Dijkstra": algorithmDijkstra, "BFS": algorithmBFS, "DFS": algorithmDFS}
+    
     while run:
+        win.fill(WHITE)
+        draw(win, grid, ROWS, width)
+        
+        # Draw each dropdown only once per loop
+        dropdown.draw(win)
+        maze_dropdown.draw(win)
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-            dropdown.handle_event(event)  
 
-            if pygame.mouse.get_pressed()[0]:  
+            dropdown.handle_event(event)
+            maze_dropdown.handle_event(event)
+
+            if pygame.mouse.get_pressed()[0]:  # LEFT mouse button
                 pos = pygame.mouse.get_pos()
-                button_width, button_height = 100, 50
-                button_x_restart = width // 2 - 120
-                button_x_start = width // 2 + 20
-                button_y = width + 20
-
-                if is_button_clicked(pos, button_x_restart, button_y, button_width, button_height):
-                    start = None
-                    end = None
+                if is_button_clicked(pos, width // 2 - 120, width + 20, 100, 50):
+                    start, end = None, None
                     grid = make_grid(ROWS, width)
-                
-                elif is_button_clicked(pos, button_x_start, button_y, button_width, button_height):
-                    if start and end:
-                        for row in grid:
-                            for spot in row:
-                                spot.update_neighbors(grid)
-                        selected_algorithm = algorithms[dropdown.selected]
-                        selected_algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
+                elif is_button_clicked(pos, width // 2 + 20, width + 20, 100, 50) and start and end:
+                    for row in grid:
+                        for spot in row:
+                            spot.update_neighbors(grid)
+                    selected_algorithm = algorithms[dropdown.selected]
+                    selected_algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
 
-                else:
-                    try:
-                        row, col = get_clicked_pos(pos, ROWS, width)  # Get the clicked position
-                        spot = grid[row][col]  # Access the spot in the grid
-                        
-                        if not start and spot != end:
-                            start = spot
-                            start.make_start()
-                        elif not end and spot != start:
-                            end = spot
-                            end.make_end()
-                        elif spot != end and spot != start:
-                            spot.make_barrier()
-                    except IndexError:
-                        pass
+                try:
+                    row, col = get_clicked_pos(pos, ROWS, width)
+                    spot = grid[row][col]
+                    if not start and spot != end:
+                        start = spot
+                        start.make_start()
+                    elif not end and spot != start:
+                        end = spot
+                        end.make_end()
+                    elif spot != end and spot != start:
+                        spot.make_barrier()
+                except IndexError:
+                    pass
 
-            elif pygame.mouse.get_pressed()[2]:  # RIGHT mouse click 
+            elif pygame.mouse.get_pressed()[2]:  # RIGHT mouse button
                 pos = pygame.mouse.get_pos()
                 row, col = get_clicked_pos(pos, ROWS, width)
                 spot = grid[row][col]
@@ -496,16 +586,12 @@ def main(win, width):
                     selected_algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
 
                 if event.key == pygame.K_c:
-                    start = None
-                    end = None
+                    start, end = None, None
                     grid = make_grid(ROWS, width)
-        
-        
-        win.fill(WHITE)  
-        draw(win, grid, ROWS, width)  
-        dropdown.draw(win)  
-
-        pygame.display.update() 
+            if maze_dropdown.selected in MAZE_PRESETS:
+                load_maze(grid, maze_dropdown.selected)
+                draw(win, grid, ROWS, width)    
+        pygame.display.update()  # Update the display only once per loop
 
     pygame.quit()
 
