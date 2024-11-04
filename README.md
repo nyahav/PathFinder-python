@@ -1,9 +1,14 @@
 🔍 Pathfinding Visualizer
+Welcome to the Pathfinding Visualizer project!
 
-Welcome to the Pathfinding Visualizer project! This tool is built with Python and Pygame to showcase how popular pathfinding algorithms work on a visual grid. Experiment with A*, Dijkstra's, BFS, and DFS algorithms, set your own start and end points, create barriers, and watch the pathfinding in action! 🌟
+🛠️ Description
+This tool is built with Python and Pygame to showcase how popular pathfinding algorithms work on a visual grid. Experiment with A*, Dijkstra's, BFS, and DFS algorithms, set your own start and end points, create barriers, and watch the pathfinding in action! 🌟
+
+
 📸 Preview
+<img src="screenshot.png" alt="Pathfinding Visualizer Preview" width="300" height="500"/>
 
-Visuals coming soon!
+
 🛠️ Features
 
     Interactive Grid: Place start/end nodes, barriers, and see paths appear in real-time!
